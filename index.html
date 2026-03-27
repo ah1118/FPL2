@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Air Algerie PDF Extractor</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Air Algerie PDF Flight Extractor</h1>
+    <p class="subtitle">
+      Upload a PDF, extract flight number and aircraft registration,
+      and show flights as <strong>DAHXXXX</strong> instead of <strong>AHXXXX</strong>.
+    </p>
+
+    <div class="card">
+      <input type="file" id="pdfFile" accept="application/pdf" />
+      <div class="buttons">
+        <button id="extractBtn">Extract</button>
+        <button id="downloadBtn" disabled>Download CSV</button>
+      </div>
+      <p id="status">Ready.</p>
+    </div>
+
+    <div class="card">
+      <h2>Results</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Raw Flight</th>
+              <th>Shown As</th>
+              <th>Aircraft Reg</th>
+              <th>Route</th>
+              <th>Page</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            <tr>
+              <td colspan="6">No data yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Text Preview</h2>
+      <textarea id="textPreview" readonly placeholder="Extracted PDF text..."></textarea>
+    </div>
+  </div>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
