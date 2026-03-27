@@ -5,27 +5,77 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 
 const pdfFile = document.getElementById("pdfFile");
 const extractBtn = document.getElementById("extractBtn");
-const downloadBtn = document.getElementById("downloadBtn");
+const exportBtn = document.getElementById("exportBtn");
 const statusEl = document.getElementById("status");
 const resultsBody = document.getElementById("resultsBody");
 const textPreview = document.getElementById("textPreview");
+const spinner = document.getElementById("spinner");
 
 let extractedRows = [];
 
-function setStatus(message, isError = false) {
-  statusEl.textContent = message;
-  statusEl.style.color = isError ? "#ef4444" : "#cbd5e1";
+/* ---------------------------------------------
+   ICAO -> IATA mapping
+--------------------------------------------- */
+const ICAO_TO_IATA = {
+  DABC: "CZL",
+  LTFM: "IST",
+  DAOO: "ORA",
+  DAAG: "ALG",
+  DAAT: "TRM"
+};
+
+function convertAirportCode(code) {
+  const clean = String(code || "").trim().toUpperCase();
+  return ICAO_TO_IATA[clean] || clean;
 }
 
-function toDAH(flight) {
-  const digits = String(flight).replace(/\D/g, "");
+function normalizeRoute(routeText) {
+  const parts = String(routeText)
+    .split("-")
+    .map(part => convertAirportCode(part.trim()));
+
+  return parts.join(" - ");
+}
+
+/* ---------------------------------------------
+   UI helpers
+--------------------------------------------- */
+function setStatus(message, isError = false) {
+  statusEl.textContent = message;
+  statusEl.style.color = isError ? "#ef4444" : "#cfcfcf";
+}
+
+function showSpinner() {
+  spinner.classList.remove("hidden");
+}
+
+function hideSpinner() {
+  spinner.classList.add("hidden");
+}
+
+function setLoading(isLoading) {
+  extractBtn.disabled = isLoading;
+  if (isLoading) {
+    extractBtn.classList.add("disabled");
+    showSpinner();
+  } else {
+    extractBtn.classList.remove("disabled");
+    hideSpinner();
+  }
+}
+
+/* ---------------------------------------------
+   Flight helpers
+--------------------------------------------- */
+function convertFlightToDAH(rawFlight) {
+  const digits = String(rawFlight).replace(/\D/g, "");
   return digits ? `DAH${digits}` : "";
 }
 
 function deduplicateRows(rows) {
   const seen = new Set();
 
-  return rows.filter((row) => {
+  return rows.filter(row => {
     const key = `${row.rawFlight}|${row.reg}|${row.route}|${row.page}`;
     if (seen.has(key)) return false;
     seen.add(key);
@@ -33,80 +83,29 @@ function deduplicateRows(rows) {
   });
 }
 
-function renderRows(rows) {
-  extractedRows = rows;
-  downloadBtn.disabled = rows.length === 0;
-
-  if (!rows.length) {
-    resultsBody.innerHTML = `<tr><td colspan="6">No matching flights found.</td></tr>`;
-    return;
-  }
-
-  resultsBody.innerHTML = rows
-    .map(
-      (row, index) => `
-      <tr>
-        <td>${index + 1}</td>
-        <td>${row.rawFlight}</td>
-        <td><strong>${row.shownFlight}</strong></td>
-        <td>${row.reg}</td>
-        <td>${row.route}</td>
-        <td>${row.page}</td>
-      </tr>
-    `
-    )
-    .join("");
-}
-
-function exportCSV() {
-  if (!extractedRows.length) return;
-
-  const headers = ["Raw Flight", "Shown As", "Aircraft Reg", "Route", "Page"];
-  const lines = [headers.join(",")];
-
-  for (const row of extractedRows) {
-    lines.push(
-      [
-        row.rawFlight,
-        row.shownFlight,
-        row.reg,
-        row.route,
-        row.page
-      ]
-        .map((value) => `"${String(value).replace(/"/g, '""')}"`)
-        .join(",")
-    );
-  }
-
-  const blob = new Blob([lines.join("\n")], {
-    type: "text/csv;charset=utf-8;"
-  });
-
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "air-algerie-flights.csv";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
+/* ---------------------------------------------
+   Parse lines
+--------------------------------------------- */
 function extractMatchesFromLine(line, pageNumber) {
   const rows = [];
+  const clean = line.trim();
+  if (!clean) return rows;
 
-  // Example:
+  // Supports:
   // CZL - ORN 6169 B738 7T-VKA
-  const regex = /([A-Z]{3}\s*-\s*[A-Z]{3})\s+(\d{3,4})\s+[A-Z0-9]{3,4}\s+(7T-[A-Z0-9]{3})/g;
+  // DABC - DAOO 6169 B738 7T-VKA
+  // DABC - LTFM 6169 B738 7T-VKA
+  const regex = /([A-Z]{3,4}\s*-\s*[A-Z]{3,4})\s+(\d{3,4})\s+[A-Z0-9]{3,4}\s+(7T-[A-Z0-9]{3})/g;
 
   let match;
-  while ((match = regex.exec(line)) !== null) {
-    const route = match[1].replace(/\s+/g, " ").trim();
+  while ((match = regex.exec(clean)) !== null) {
+    const rawRoute = match[1].replace(/\s+/g, " ").trim();
+    const route = normalizeRoute(rawRoute);
     const flightDigits = match[2];
     const reg = match[3];
 
     const rawFlight = `AH${flightDigits}`;
-    const shownFlight = toDAH(rawFlight);
+    const shownFlight = convertFlightToDAH(rawFlight);
 
     rows.push({
       rawFlight,
@@ -120,6 +119,68 @@ function extractMatchesFromLine(line, pageNumber) {
   return rows;
 }
 
+/* ---------------------------------------------
+   Render
+--------------------------------------------- */
+function renderRows(rows) {
+  extractedRows = rows;
+  exportBtn.disabled = rows.length === 0;
+
+  if (!rows.length) {
+    resultsBody.innerHTML = `<tr><td colspan="6">No matching flights found.</td></tr>`;
+    return;
+  }
+
+  resultsBody.innerHTML = rows
+    .map(
+      (row, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${row.rawFlight}</td>
+          <td><strong>${row.shownFlight}</strong></td>
+          <td>${row.reg}</td>
+          <td>${row.route}</td>
+          <td>${row.page}</td>
+        </tr>
+      `
+    )
+    .join("");
+}
+
+/* ---------------------------------------------
+   Export CSV
+--------------------------------------------- */
+function exportCSV() {
+  if (!extractedRows.length) return;
+
+  const header = ["Raw Flight", "Shown As", "Aircraft Reg", "Route", "Page"];
+  const lines = [header.join(",")];
+
+  for (const row of extractedRows) {
+    lines.push(
+      [row.rawFlight, row.shownFlight, row.reg, row.route, row.page]
+        .map(value => `"${String(value).replace(/"/g, '""')}"`)
+        .join(",")
+    );
+  }
+
+  const blob = new Blob([lines.join("\n")], {
+    type: "text/csv;charset=utf-8;"
+  });
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "air-algerie-extracted-flights.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ---------------------------------------------
+   Read PDF
+--------------------------------------------- */
 async function readPdf(file) {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -141,11 +202,11 @@ async function readPdf(file) {
 
     const sortedY = [...grouped.keys()].sort((a, b) => b - a);
 
-    const lines = sortedY.map((y) =>
+    const lines = sortedY.map(y =>
       grouped
         .get(y)
         .sort((a, b) => a.transform[4] - b.transform[4])
-        .map((item) => item.str)
+        .map(item => item.str)
         .join(" ")
         .replace(/\s{2,}/g, " ")
         .trim()
@@ -164,16 +225,20 @@ async function readPdf(file) {
   };
 }
 
+/* ---------------------------------------------
+   Events
+--------------------------------------------- */
 extractBtn.addEventListener("click", async () => {
   try {
-    const file = pdfFile.files[0];
+    const file = pdfFile.files?.[0];
 
     if (!file) {
-      setStatus("Please select a PDF file first.", true);
+      setStatus("Please choose a PDF file first.", true);
       return;
     }
 
-    setStatus("Reading PDF...");
+    setLoading(true);
+    setStatus("Reading PDF and extracting flights...");
     renderRows([]);
     textPreview.value = "";
 
@@ -185,12 +250,14 @@ extractBtn.addEventListener("click", async () => {
     if (result.rows.length) {
       setStatus(`Done. Found ${result.rows.length} flight record(s).`);
     } else {
-      setStatus("No matching flights found in this PDF.", true);
+      setStatus("PDF was read, but no matching flight rows were found.", true);
     }
   } catch (error) {
     console.error(error);
     setStatus(`Error: ${error.message}`, true);
+  } finally {
+    setLoading(false);
   }
 });
 
-downloadBtn.addEventListener("click", exportCSV);
+exportBtn.addEventListener("click", exportCSV);
