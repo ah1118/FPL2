@@ -9,7 +9,6 @@ const exportBtn = document.getElementById("exportBtn");
 const statusEl = document.getElementById("status");
 const resultsBody = document.getElementById("resultsBody");
 const countBadge = document.getElementById("countBadge");
-const textPreview = document.getElementById("textPreview");
 
 let extractedRows = [];
 
@@ -240,11 +239,9 @@ if (extractBtn) {
 
       setStatus("Reading PDF and extracting flights...");
       renderRows([]);
-      if (textPreview) textPreview.value = "";
 
       const result = await extractTextFromPdf(file);
 
-      if (textPreview) textPreview.value = result.text;
       renderRows(result.rows);
 
       if (result.rows.length) {
