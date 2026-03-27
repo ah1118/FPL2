@@ -3,25 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Air Algerie PDF Extractor</title>
+  <title>Air Algerie PDF Flight Extractor</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="container">
-    <h1>Air Algerie PDF Flight Extractor</h1>
-    <p class="subtitle">
-      Upload a PDF, extract flight number and aircraft registration,
-      and show flights as <strong>DAHXXXX</strong> instead of <strong>AHXXXX</strong>.
-    </p>
+  <div id="spinner" class="spinner hidden"></div>
 
-    <div class="card">
-      <input type="file" id="pdfFile" accept="application/pdf" />
-      <div class="buttons">
-        <button id="extractBtn">Extract</button>
-        <button id="downloadBtn" disabled>Download CSV</button>
-      </div>
-      <p id="status">Ready.</p>
+  <div class="container">
+    <h1 class="title">Air Algerie PDF Flight Extractor</h1>
+
+    <label class="label" for="pdfFile">Select PDF file</label>
+    <input id="pdfFile" type="file" accept="application/pdf" />
+
+    <div class="buttons">
+      <button id="extractBtn" class="btn success-btn">Extract</button>
+      <button id="exportBtn" class="btn" disabled>Export CSV</button>
     </div>
+
+    <p id="status">Ready.</p>
 
     <div class="card">
       <h2>Results</h2>
@@ -38,19 +37,17 @@
             </tr>
           </thead>
           <tbody id="resultsBody">
-            <tr>
-              <td colspan="6">No data yet.</td>
-            </tr>
+            <tr><td colspan="6">No data yet.</td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <div class="card">
-      <h2>Text Preview</h2>
-      <textarea id="textPreview" readonly placeholder="Extracted PDF text..."></textarea>
-    </div>
+    <label class="label" for="textPreview">Extracted Text Preview</label>
+    <textarea id="textPreview" class="big-input" readonly placeholder="PDF text will appear here..."></textarea>
   </div>
+
+  <div class="signature">Air Algerie Extractor Pro</div>
 
   <script type="module" src="script.js"></script>
 </body>
