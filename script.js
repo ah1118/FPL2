@@ -179,7 +179,7 @@ function renderRows(rows) {
 
   if (!rows.length) {
     resultsBody.innerHTML =
-      '<tr><td colspan="6">No matching flights found.</td></tr>';
+      '<tr><td colspan="5">No matching flights found.</td></tr>';
     return;
   }
 
@@ -192,7 +192,6 @@ function renderRows(rows) {
           <td><strong>${row.shownFlight}</strong></td>
           <td>${row.reg}</td>
           <td>${row.route}</td>
-          <td>${row.page}</td>
         </tr>
       `
     )
@@ -202,12 +201,12 @@ function renderRows(rows) {
 function exportCSV() {
   if (!extractedRows.length) return;
 
-  const header = ["Raw Flight", "Shown As", "Aircraft Reg", "Route", "Page"];
+  const header = ["Raw Flight", "Shown As", "Aircraft Reg", "Route"];
   const lines = [header.join(",")];
 
   for (const row of extractedRows) {
     lines.push(
-      [row.rawFlight, row.shownFlight, row.reg, row.route, row.page]
+      [row.rawFlight, row.shownFlight, row.reg, row.route]
         .map((value) => `"${String(value).replace(/"/g, '""')}"`)
         .join(",")
     );
