@@ -18,10 +18,24 @@ let extractedRows = [];
 --------------------------------------------- */
 const ICAO_TO_IATA = {
   DABC: "CZL",
-  LTFM: "IST",
-  DAOO: "ORA",
   DAAG: "ALG",
-  DAAT: "TRM"
+  DAOO: "ORN",
+  LTFM: "IST",
+  DAAJ: "DJG",
+  DAUU: "OGX",
+  DAUH: "HME",
+  DAUG: "GHA",
+  DAUA: "AZR",
+  DAOR: "CBH",
+  DAAT: "TMR",
+  LFML: "MRS",
+  LFLL: "LYS",
+  LFPG: "CDG",
+  LFPO: "ORY",
+  LFJL: "ETZ",
+  LFSB: "MLH",
+  OEJN: "JED",
+  OEMA: "MED"
 };
 
 function convertAirportCode(code) {
