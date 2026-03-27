@@ -41,6 +41,7 @@ const IATA_TO_ICAO = {
 };
 
 function setStatus(message, isError = false) {
+  if (!statusEl) return;
   statusEl.textContent = message;
   statusEl.className = isError ? "status error" : "status";
 }
@@ -166,8 +167,16 @@ function deduplicateRows(rows) {
 
 function renderRows(rows) {
   extractedRows = rows;
-  countBadge.textContent = `${rows.length} record${rows.length === 1 ? "" : "s"}`;
-  exportBtn.disabled = rows.length === 0;
+
+  if (countBadge) {
+    countBadge.textContent = `${rows.length} record${rows.length === 1 ? "" : "s"}`;
+  }
+
+  if (exportBtn) {
+    exportBtn.disabled = rows.length === 0;
+  }
+
+  if (!resultsBody) return;
 
   if (!rows.length) {
     resultsBody.innerHTML =
@@ -219,37 +228,42 @@ function exportCSV() {
   URL.revokeObjectURL(url);
 }
 
-extractBtn.addEventListener("click", async () => {
-  try {
-    const file = pdfFile.files?.[0];
+if (extractBtn) {
+  extractBtn.addEventListener("click", async () => {
+    try {
+      const file = pdfFile?.files?.[0];
 
-    if (!file) {
-      setStatus("Please choose a PDF file first.", true);
-      return;
+      if (!file) {
+        setStatus("Please choose a PDF file first.", true);
+        return;
+      }
+
+      setStatus("Reading PDF and extracting flights...");
+      renderRows([]);
+      if (textPreview) textPreview.value = "";
+
+      const result = await extractTextFromPdf(file);
+
+      if (textPreview) textPreview.value = result.text;
+      renderRows(result.rows);
+
+      if (result.rows.length) {
+        setStatus(
+          `Done. Found ${result.rows.length} flight record(s). Routes are displayed in ICAO and flights as DAHXXXX.`
+        );
+      } else {
+        setStatus(
+          "PDF was read, but no matching flight rows were found.",
+          true
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      setStatus(`Error: ${error.message}`, true);
     }
+  });
+}
 
-    setStatus("Reading PDF and extracting flights...");
-    renderRows([]);
-    textPreview.value = "";
-
-    const result = await extractTextFromPdf(file);
-    textPreview.value = result.text;
-    renderRows(result.rows);
-
-    if (result.rows.length) {
-      setStatus(
-        `Done. Found ${result.rows.length} flight record(s). Routes are displayed in ICAO and flights as DAHXXXX.`
-      );
-    } else {
-      setStatus(
-        "PDF was read, but no matching flight rows were found. Check the text preview to adjust the regex for your PDF format.",
-        true
-      );
-    }
-  } catch (error) {
-    console.error(error);
-    setStatus(`Error: ${error.message}`, true);
-  }
-});
-
-exportBtn.addEventListener("click", exportCSV);
+if (exportBtn) {
+  exportBtn.addEventListener("click", exportCSV);
+}
