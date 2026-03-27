@@ -35,7 +35,9 @@ const ICAO_TO_IATA = {
   LFJL: "ETZ",
   LFSB: "MLH",
   OEJN: "JED",
-  OEMA: "MED"
+  OEMA: "MED",
+  DAUO: "ELU",
+  DAUK: "TGR"
 };
 
 function convertAirportCode(code) {
